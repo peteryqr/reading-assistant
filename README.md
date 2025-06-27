@@ -14,7 +14,7 @@ A Django-based web application for reading and taking notes on PDF documents.
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone git@github.com:peteryqr/reading-assistant.git
 cd reading-assistant
 ```
 
@@ -35,29 +35,12 @@ python manage.py makemigrations
 python manage.py migrate
 ```
 
-5. Create a superuser (optional):
-```bash
-python manage.py createsuperuser
-```
-
 6. Run the development server:
 ```bash
 python manage.py runserver
 ```
 
 7. Visit http://127.0.0.1:8000 in your web browser
-
-## Usage
-
-1. Register a new account or log in
-2. Upload PDF documents through the web interface
-3. View your documents and their contents
-4. Take notes while reading (feature coming soon)
-5. Highlight text and associate notes with selections (feature coming soon)
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
