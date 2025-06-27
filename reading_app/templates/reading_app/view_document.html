@@ -7,6 +7,12 @@
         width: 100%;
         height: calc(100vh - 56px);  /* Assuming your navbar is 56px high */
         position: relative;
+        display: flex;
+    }
+
+    .pdf-container {
+        flex: 1;
+        height: 100%;
     }
 
     #pdf-viewer {
@@ -14,12 +20,101 @@
         height: 100%;
         border: none;
     }
+
+    .notes-container {
+        width: 300px;
+        padding: 15px;
+        border-left: 1px solid black;
+        display: flex;
+        flex-direction: column;
+        background-color: #f8f9fa;
+    }
+
+    #notes-textarea {
+        flex: 1;
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid black;
+        border-radius: 4px;
+        resize: none;
+        font-size: 14px;
+    }
+
+    .save-button {
+        background-color: white;
+        color: black;
+        border: 1px solid black;
+        padding: 8px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.2s;
+    }
+
+    .save-button:hover {
+        background-color: black;
+        color: white;
+    }
+
+    .save-status {
+        margin-top: 8px;
+        font-size: 12px;
+        text-align: center;
+        min-height: 15px;
+    }
 </style>
 
 <div class="content-wrapper">
-    <iframe id="pdf-viewer" 
-            src="{% static 'pdfjs/web/viewer.html' %}?file={{ document.file.url|urlencode }}&enableAnnotationEditing=true&enableAnnotationTools=true&showAnnotationTools=true&enableHandToolOnLoad=true&hiddenUrls=false&showEditorToolbar=true&enableEditor=true&defaultEditorMode=2"
-            title="PDF Viewer">
-    </iframe>
+    <div class="pdf-container">
+        <iframe id="pdf-viewer" 
+                src="{% static 'pdfjs/web/viewer.html' %}?file={{ document.file.url|urlencode }}&enableAnnotationEditing=true&enableAnnotationTools=true&showAnnotationTools=true&enableHandToolOnLoad=true&hiddenUrls=false&showEditorToolbar=true&enableEditor=true&defaultEditorMode=2"
+                title="PDF Viewer">
+        </iframe>
+    </div>
+    <div class="notes-container">
+        <textarea id="notes-textarea" placeholder="Write your notes here..."></textarea>
+        <button class="save-button" onclick="saveNotes()">Save Notes</button>
+        <div class="save-status" id="save-status"></div>
+    </div>
 </div>
+
+<script>
+    // Generate a unique key for this document's notes
+    const notesKey = 'document_notes_' + {{ document.id }};
+    
+    // Load saved notes when the page loads
+    window.addEventListener('load', function() {
+        const savedNotes = localStorage.getItem(notesKey);
+        if (savedNotes) {
+            document.getElementById('notes-textarea').value = savedNotes;
+        }
+    });
+
+    // Auto-save notes every 30 seconds
+    setInterval(function() {
+        saveNotes(true);
+    }, 30000);
+
+    // Save notes before leaving the page
+    window.addEventListener('beforeunload', function() {
+        saveNotes(true);
+    });
+
+    function saveNotes(silent) {
+        if (typeof silent === 'undefined') {
+            silent = false;
+        }
+        const notes = document.getElementById('notes-textarea').value;
+        localStorage.setItem(notesKey, notes);
+        
+        if (!silent) {
+            const statusElement = document.getElementById('save-status');
+            statusElement.textContent = 'Notes saved!';
+            setTimeout(function() {
+                statusElement.textContent = '';
+            }, 2000);
+        }
+    }
+</script>
 {% endblock %} 
