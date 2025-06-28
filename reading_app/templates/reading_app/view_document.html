@@ -41,18 +41,25 @@
         font-size: 14px;
     }
 
-    .save-button {
+    .button-container {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+
+    .save-button, .download-button {
         background-color: white;
         color: black;
         border: 1px solid black;
         padding: 8px 15px;
         border-radius: 4px;
         cursor: pointer;
-        font-size: 14px;
+        font-size: 12px;
         transition: background-color 0.2s;
+        flex: 1;
     }
 
-    .save-button:hover {
+    .save-button:hover, .download-button:hover {
         background-color: black;
         color: white;
     }
@@ -74,7 +81,10 @@
     </div>
     <div class="notes-container">
         <textarea id="notes-textarea" placeholder="Write your notes here..."></textarea>
-        <button class="save-button" onclick="saveNotes()">Save Notes</button>
+        <div class="button-container">
+            <button class="save-button" onclick="saveNotes()">Save Notes</button>
+            <button class="download-button" onclick="downloadNotes()">Download Notes</button>
+        </div>
         <div class="save-status" id="save-status"></div>
     </div>
 </div>
@@ -115,6 +125,40 @@
                 statusElement.textContent = '';
             }, 2000);
         }
+    }
+
+    function downloadNotes() {
+        // Save notes first
+        saveNotes(true);
+        
+        // Get the notes content
+        const notes = document.getElementById('notes-textarea').value;
+        
+        // Create a Blob containing the notes text
+        const blob = new Blob([notes], { type: 'text/plain' });
+        
+        // Create a temporary link element
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        
+        // Set the filename - use the document title if available
+        const filename = 'notes_{{ document.title|default:"document" }}.txt';
+        a.download = filename;
+        
+        // Append link to body, click it, and remove it
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        // Clean up the URL object
+        URL.revokeObjectURL(a.href);
+        
+        // Show status message
+        const statusElement = document.getElementById('save-status');
+        statusElement.textContent = 'Notes downloaded!';
+        setTimeout(function() {
+            statusElement.textContent = '';
+        }, 2000);
     }
 </script>
 {% endblock %} 
