@@ -250,114 +250,131 @@
         localStorage.setItem(notesKey, notes);
         
         if (!silent) {
-            const statusElement = document.getElementById('save-status');
-            statusElement.textContent = 'Notes saved!';
-            setTimeout(function() {
-                statusElement.textContent = '';
+            const saveStatus = document.getElementById('save-status');
+            saveStatus.textContent = 'Notes saved!';
+            setTimeout(() => {
+                saveStatus.textContent = '';
             }, 2000);
         }
     }
 
     function downloadNotes() {
-        // Save notes first
-        saveNotes(true);
-        
-        // Get the notes content
         const notes = document.getElementById('notes-textarea').value;
-        
-        // Create a Blob containing the notes text
         const blob = new Blob([notes], { type: 'text/plain' });
-        
-        // Create a temporary link element
+        const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        
-        // Set the filename - use the document title if available
-        const filename = 'notes_{{ document.title|default:"document" }}.txt';
-        a.download = filename;
-        
-        // Append link to body, click it, and remove it
-        document.body.appendChild(a);
+        a.href = url;
+        a.download = 'notes.txt';
         a.click();
-        document.body.removeChild(a);
-        
-        // Clean up the URL object
-        URL.revokeObjectURL(a.href);
-        
-        // Show status message
-        const statusElement = document.getElementById('save-status');
-        statusElement.textContent = 'Notes downloaded!';
-        setTimeout(function() {
-            statusElement.textContent = '';
-        }, 2000);
+        window.URL.revokeObjectURL(url);
     }
 
-    // Chat functionality (frontend only for now)
-    const chatMessages = document.getElementById('chat-messages');
-    const chatInput = document.getElementById('chat-input');
-    const sendButton = document.getElementById('send-button');
+    // Chat functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const sendButton = document.getElementById('send-button');
 
-    function addMessage(text, isUser = true) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
-        messageDiv.textContent = text;
-        chatMessages.appendChild(messageDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
+        function addMessage(message, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
+            messageDiv.textContent = message;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
 
-    function handleSend() {
-        const message = chatInput.value.trim();
-        if (message) {
-            addMessage(message, true);
+        async function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            // Clear input
             chatInput.value = '';
-            
-            // Placeholder for AI response (to be implemented later)
-            setTimeout(() => {
-                addMessage('This is a placeholder response. The AI backend will be implemented later.', false);
-            }, 500);
-        }
-    }
 
-    sendButton.addEventListener('click', handleSend);
-    chatInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            handleSend();
+            // Add user message to chat
+            addMessage(message, true);
+
+            try {
+                const response = await fetch('/chat/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        document_id: {{ document.id }}
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    addMessage(data.response, false);
+                } else {
+                    addMessage('Error: ' + data.message, false);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                addMessage('Sorry, there was an error processing your request.', false);
+            }
         }
+
+        // Function to get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Event listeners
+        sendButton.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
     });
 
-    // Add resizer functionality
-    const resizer = document.getElementById('resizer');
-    const chatBox = document.querySelector('.chat-box');
-    const notesSection = document.querySelector('.notes-section');
-    let isResizing = false;
-    let startY;
-    let startHeight;
+    // Make chat box resizable
+    document.addEventListener('DOMContentLoaded', function() {
+        const resizer = document.getElementById('resizer');
+        const chatBox = document.querySelector('.chat-box');
+        let isResizing = false;
+        let startY;
+        let startHeight;
 
-    resizer.addEventListener('mousedown', initResize);
+        resizer.addEventListener('mousedown', function(e) {
+            isResizing = true;
+            startY = e.clientY;
+            startHeight = parseInt(getComputedStyle(chatBox).height, 10);
+            
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', stopResizing);
+        });
 
-    function initResize(e) {
-        isResizing = true;
-        startY = e.clientY;
-        startHeight = chatBox.offsetHeight;
+        function handleMouseMove(e) {
+            if (!isResizing) return;
+            
+            const deltaY = e.clientY - startY;
+            const newHeight = Math.max(100, startHeight + deltaY); // Minimum height of 100px
+            chatBox.style.height = `${newHeight}px`;
+        }
 
-        document.addEventListener('mousemove', resize);
-        document.addEventListener('mouseup', stopResize);
-    }
-
-    function resize(e) {
-        if (!isResizing) return;
-
-        const deltaY = e.clientY - startY;
-        const containerHeight = chatBox.parentElement.offsetHeight - resizer.offsetHeight;
-        const newChatHeight = Math.max(100, Math.min(startHeight + deltaY, containerHeight - 150));
-        
-        chatBox.style.height = newChatHeight + 'px';
-    }
-
-    function stopResize() {
-        isResizing = false;
-        document.removeEventListener('mousemove', resize);
-        document.removeEventListener('mouseup', stopResize);
-    }
+        function stopResizing() {
+            isResizing = false;
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', stopResizing);
+        }
+    });
 </script>
 {% endblock %} 
