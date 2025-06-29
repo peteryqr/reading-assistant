@@ -74,7 +74,7 @@ DOCUMENT CONTENT:
 USER QUESTION:
 {user_message}
 
-Please answer based on the document content above. If the question cannot be answered using only the document content, 
+When the question is relevant to the document above, please answer based on the document content above. If the question cannot be answered using only the document content, 
 please say so clearly. If you need to quote from the document, use quotation marks and be precise."""
 
         return prompt
